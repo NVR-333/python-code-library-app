@@ -1,53 +1,97 @@
 version: "3.8"
 
 services:
-  NVR_dbservice:
+  dbservice:
     image: mysql:8.0
+    container_name: NVR_db
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: digital_library
+      MYSQL_ROOT_HOST: "%"
     ports:
       - "3306:3306"
     networks:
-      - nvr-network
+      - nvr_net
     deploy:
-      replicas: 1
+      replicas: 1       # Keep DB single replica
       restart_policy:
         condition: on-failure
 
-  auth_service:
+  authservice:
     image: nvr333/mynewapp:authimg
+    container_name: NVR_auth_service
     environment:
-      DB_HOST: NVR_dbservice
+      DB_HOST: dbservice
       DB_USER: root
       DB_PASSWORD: root
       DB_NAME: digital_library
     ports:
       - "5001:5001"
     networks:
-      - nvr-network
+      - nvr_net
     depends_on:
-      - NVR_dbservice
+      - dbservice
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
 
-  app_service:
-    image: nvr333/mynewapp:appimg
+  bookservice:
+    image: nvr333/mynewapp:bookimg
+    container_name: NVR_book_service
     environment:
-      AUTH_URL: http://auth_service:5001
+      DB_HOST: dbservice
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: digital_library
+    ports:
+      - "5002:5002"
+    networks:
+      - nvr_net
+    depends_on:
+      - dbservice
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  borrowservice:
+    image: nvr333/mynewapp:borrowimg
+    container_name: NVR_borrow_service
+    environment:
+      DB_HOST: dbservice
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: digital_library
+    ports:
+      - "5003:5003"
+    networks:
+      - nvr_net
+    depends_on:
+      - dbservice
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  appservice:
+    image: nvr333/mynewapp:appimg
+    container_name: NVR_app_service
+    environment:
+      AUTH_URL: http://authservice:5001
     ports:
       - "5000:5000"
     networks:
-      - nvr-network
+      - nvr_net
     depends_on:
-      - auth_service
+      - authservice
+      - bookservice
+      - borrowservice
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
 
 networks:
-  nvr-network:
+  nvr_net:
     driver: overlay

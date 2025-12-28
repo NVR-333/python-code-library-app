@@ -1,22 +1,3 @@
-version: "3.8"
-
-services:
-  dbservice:
-    image: mysql:8.0
-    container_name: NVR_db
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: digital_library
-      MYSQL_ROOT_HOST: "%"
-    ports:
-      - "3306:3306"
-    networks:
-      - nvr_net
-    deploy:
-      replicas: 1       # Keep DB single replica
-      restart_policy:
-        condition: on-failure
-
   authservice:
     image: nvr333/mynewapp:authimg
     container_name: NVR_auth_service
@@ -35,44 +16,11 @@ services:
       replicas: 2
       restart_policy:
         condition: on-failure
-
-  bookservice:
-    image: nvr333/mynewapp:bookimg
-    container_name: NVR_book_service
-    environment:
-      DB_HOST: dbservice
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: digital_library
-    ports:
-      - "5002:5002"
-    networks:
-      - nvr_net
-    depends_on:
-      - dbservice
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
-
-  borrowservice:
-    image: nvr333/mynewapp:borrowimg
-    container_name: NVR_borrow_service
-    environment:
-      DB_HOST: dbservice
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: digital_library
-    ports:
-      - "5003:5003"
-    networks:
-      - nvr_net
-    depends_on:
-      - dbservice
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]  # adjust path if needed
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   appservice:
     image: nvr333/mynewapp:appimg
@@ -84,14 +32,11 @@ services:
     networks:
       - nvr_net
     depends_on:
-      - authservice
+      authservice:
+        condition: service_healthy
       - bookservice
       - borrowservice
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
-
-networks:
-  nvr_net:
-    driver: overlay

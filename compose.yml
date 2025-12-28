@@ -1,22 +1,48 @@
----
+version: "3.8"
+
 services:
-  dbservice:
+  db_service:
     image: nvr333/mynewapp:dbimg
     ports:
       - "3306:3306"
-  authservice:
+    networks:
+      - app_net
+
+  auth_service:
     image: nvr333/mynewapp:authimg
     ports:
       - "5001:5001"
-  bookservice:
+    networks:
+      - app_net
+
+  book_service:
     image: nvr333/mynewapp:bookimg
     ports:
       - "5002:5002"
-  borrowservice:
+    networks:
+      - app_net
+
+  borrow_service:
     image: nvr333/mynewapp:borrowimg
     ports:
       - "5003:5003"
-  appservice:
+    networks:
+      - app_net
+
+  app_service:
     image: nvr333/mynewapp:appimg
     ports:
       - "5000:5000"
+    environment:
+      # IMPORTANT: use STACK-PREFIXED service names
+      AUTH_URL: http://myapp_auth_service:5001
+      BOOK_URL: http://myapp_book_service:5002
+      BORROW_URL: http://myapp_borrow_service:5003
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: overlay
+    attachable: true
+

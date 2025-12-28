@@ -1,36 +1,37 @@
-version: "3.8"
+version: "3.9"
+
+networks:
+  mynet:
+    driver: overlay
 
 services:
   dbservice:
-    image: mysql:8.0
-    container_name: NVR_db
+    image: nvr333/mynewapp:dbimg
+    ports:
+      - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: digital_library
-      MYSQL_ROOT_HOST: "%"
-    ports:
-      - "3306:3306"
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
     networks:
-      - nvr_net
+      - mynet
     deploy:
-      replicas: 1       # Keep DB single replica
+      replicas: 1
       restart_policy:
         condition: on-failure
 
   authservice:
     image: nvr333/mynewapp:authimg
-    container_name: NVR_auth_service
+    ports:
+      - "5001:5001"
     environment:
       DB_HOST: dbservice
       DB_USER: root
       DB_PASSWORD: root
       DB_NAME: digital_library
-    ports:
-      - "5001:5001"
     networks:
-      - nvr_net
-    depends_on:
-      - dbservice
+      - mynet
     deploy:
       replicas: 2
       restart_policy:
@@ -38,18 +39,10 @@ services:
 
   bookservice:
     image: nvr333/mynewapp:bookimg
-    container_name: NVR_book_service
-    environment:
-      DB_HOST: dbservice
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: digital_library
     ports:
       - "5002:5002"
     networks:
-      - nvr_net
-    depends_on:
-      - dbservice
+      - mynet
     deploy:
       replicas: 2
       restart_policy:
@@ -57,18 +50,10 @@ services:
 
   borrowservice:
     image: nvr333/mynewapp:borrowimg
-    container_name: NVR_borrow_service
-    environment:
-      DB_HOST: dbservice
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: digital_library
     ports:
       - "5003:5003"
     networks:
-      - nvr_net
-    depends_on:
-      - dbservice
+      - mynet
     deploy:
       replicas: 2
       restart_policy:
@@ -76,22 +61,13 @@ services:
 
   appservice:
     image: nvr333/mynewapp:appimg
-    container_name: NVR_app_service
-    environment:
-      AUTH_URL: http://authservice:5001
     ports:
       - "5000:5000"
+    environment:
+      AUTH_URL: http://authservice:5001
     networks:
-      - nvr_net
-    depends_on:
-      - authservice
-      - bookservice
-      - borrowservice
+      - mynet
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
-
-networks:
-  nvr_net:
-    driver: overlay

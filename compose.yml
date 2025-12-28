@@ -1,73 +1,53 @@
-version: "3.9"
-
-networks:
-  mynet:
-    driver: overlay
+version: "3.8"
 
 services:
-  dbservice:
-    image: nvr333/mynewapp:dbimg
-    ports:
-      - "3306:3306"
+  NVR_dbservice:
+    image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: digital_library
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
+    ports:
+      - "3306:3306"
     networks:
-      - mynet
+      - nvr-network
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
-  authservice:
+  auth_service:
     image: nvr333/mynewapp:authimg
-    ports:
-      - "5001:5001"
     environment:
-      DB_HOST: dbservice
+      DB_HOST: NVR_dbservice
       DB_USER: root
       DB_PASSWORD: root
       DB_NAME: digital_library
-    networks:
-      - mynet
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
-
-  bookservice:
-    image: nvr333/mynewapp:bookimg
     ports:
-      - "5002:5002"
+      - "5001:5001"
     networks:
-      - mynet
+      - nvr-network
+    depends_on:
+      - NVR_dbservice
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
 
-  borrowservice:
-    image: nvr333/mynewapp:borrowimg
-    ports:
-      - "5003:5003"
-    networks:
-      - mynet
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
-
-  appservice:
+  app_service:
     image: nvr333/mynewapp:appimg
+    environment:
+      AUTH_URL: http://auth_service:5001
     ports:
       - "5000:5000"
-    environment:
-      AUTH_URL: http://authservice:5001
     networks:
-      - mynet
+      - nvr-network
+    depends_on:
+      - auth_service
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
+
+networks:
+  nvr-network:
+    driver: overlay

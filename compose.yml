@@ -1,0 +1,25 @@
+---
+services:
+  dbservice:
+    container_image: db
+    image: nvr333/mynewapp:dbimg
+    ports:
+      - "3306:3306"
+  authservice:
+    image: nvr333/mynewapp:authimg
+    ports:
+      - "5001:5001"
+  bookservice:
+    image: nvr333/mynewapp:bookimg
+    ports:
+      - "5002:5002"
+  borrowservice:
+    image: nvr333/mynewapp:borrowimg
+    ports:
+      - "5003:5003"
+  appservice:
+    image: nvr333/mynewapp:appimg
+    ports:
+      - "5000:5000"
+    depends_on:
+      - "db"

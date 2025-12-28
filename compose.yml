@@ -13,15 +13,9 @@ services:
     networks:
       - nvr_net
     deploy:
-      replicas: 1
+      replicas: 1       # Keep DB single replica
       restart_policy:
         condition: on-failure
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      retries: 5
-      start_period: 10s
-      timeout: 5s
 
   authservice:
     image: nvr333/mynewapp:authimg
@@ -36,18 +30,11 @@ services:
     networks:
       - nvr_net
     depends_on:
-      dbservice:
-        condition: service_healthy
+      - dbservice
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
-      interval: 5s
-      retries: 5
-      start_period: 10s
-      timeout: 5s
 
   bookservice:
     image: nvr333/mynewapp:bookimg
@@ -62,18 +49,11 @@ services:
     networks:
       - nvr_net
     depends_on:
-      dbservice:
-        condition: service_healthy
+      - dbservice
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5002/"]
-      interval: 5s
-      retries: 5
-      start_period: 10s
-      timeout: 5s
 
   borrowservice:
     image: nvr333/mynewapp:borrowimg
@@ -88,18 +68,11 @@ services:
     networks:
       - nvr_net
     depends_on:
-      dbservice:
-        condition: service_healthy
+      - dbservice
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5003/"]
-      interval: 5s
-      retries: 5
-      start_period: 10s
-      timeout: 5s
 
   appservice:
     image: nvr333/mynewapp:appimg
@@ -111,26 +84,23 @@ services:
     networks:
       - nvr_net
     depends_on:
-      authservice:
-        condition: service_healthy
-      bookservice:
-        condition: service_healthy
-      borrowservice:
-        condition: service_healthy
+      - authservice
+      - bookservice
+      - borrowservice
+    # Add wait-for-it logic to ensure dependencies are ready
+    command: >
+      sh -c "
+      until nc -z authservice 5001; do echo 'Waiting for authservice...'; sleep 2; done;
+      until nc -z bookservice 5002; do echo 'Waiting for bookservice...'; sleep 2; done;
+      until nc -z borrowservice 5003; do echo 'Waiting for borrowservice...'; sleep 2; done;
+      python /app/app.py
+      "
     deploy:
       replicas: 2
       restart_policy:
         condition: on-failure
-    command: >
-      sh -c "
-      echo 'Waiting for authservice...';
-      while ! nc -z authservice 5001; do
-        sleep 2;
-      done;
-      echo 'authservice is up, starting appservice...';
-      python app.py
-      "
 
 networks:
   nvr_net:
     driver: overlay
+

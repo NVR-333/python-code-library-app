@@ -87,14 +87,6 @@ services:
       - authservice
       - bookservice
       - borrowservice
-    # Add wait-for-it logic to ensure dependencies are ready
-    command: >
-      sh -c "
-      until nc -z authservice 5001; do echo 'Waiting for authservice...'; sleep 2; done;
-      until nc -z bookservice 5002; do echo 'Waiting for bookservice...'; sleep 2; done;
-      until nc -z borrowservice 5003; do echo 'Waiting for borrowservice...'; sleep 2; done;
-      python /app/app.py
-      "
     deploy:
       replicas: 2
       restart_policy:
@@ -103,4 +95,3 @@ services:
 networks:
   nvr_net:
     driver: overlay
-

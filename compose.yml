@@ -1,48 +1,86 @@
 version: "3.8"
 
 services:
-  db_service:
+  db:
     image: nvr333/mynewapp:dbimg
-    ports:
-      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: digital_library
+    volumes:
+      - db_data:/var/lib/mysql
     networks:
       - app_net
+    deploy:
+      replicas: 2
 
   auth_service:
     image: nvr333/mynewapp:authimg
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: digital_library
     ports:
       - "5001:5001"
+    depends_on:
+      - db
     networks:
       - app_net
+    deploy:
+      replicas: 2
 
   book_service:
     image: nvr333/mynewapp:bookimg
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: digital_library
     ports:
       - "5002:5002"
+    depends_on:
+      - db
     networks:
       - app_net
+    deploy:
+      replicas: 2
 
   borrow_service:
     image: nvr333/mynewapp:borrowimg
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: digital_library
     ports:
       - "5003:5003"
+    depends_on:
+      - db
     networks:
       - app_net
+    deploy:
+      replicas: 2
 
   app_service:
     image: nvr333/mynewapp:appimg
+    environment:
+      AUTH_URL: http://auth_service:5001
+      BOOK_URL: http://book_service:5002
+      BORROW_URL: http://borrow_service:5003
     ports:
       - "5000:5000"
-    environment:
-      # IMPORTANT: use STACK-PREFIXED service names
-      AUTH_URL: http://myapp_auth_service:5001
-      BOOK_URL: http://myapp_book_service:5002
-      BORROW_URL: http://myapp_borrow_service:5003
+    depends_on:
+      - auth_service
+      - book_service
+      - borrow_service
     networks:
       - app_net
+    deploy:
+      replicas: 2
 
 networks:
   app_net:
     driver: overlay
-    attachable: true
 
+volumes:
+  db_data:
